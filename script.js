@@ -19,6 +19,7 @@ let completeListArray = [];
 let onHoldListArray = [];
 let listArrays = [];
 
+
 // Drag Functionality
 let draggedItem;
 let currentColumn;
@@ -92,10 +93,30 @@ function updateDOM() {
   updateSavedColumns();
 }
 
-// When Item Starts Dragging
+// Allow arrays to reflect Drag and Drop item
+function rebuildArrays() {
+  backlogListArray = [];
+  progressListArray = [];
+  completeListArray = [];
+  onHoldListArray = [];
+
+  for (const child of backlogList.children) {
+    backlogListArray.push(child.textContent);
+  }
+  for (const child of progressList.children) {
+    progressListArray.push(child.textContent);
+  }
+  for (const child of completeList.children) {
+    completeListArray.push(child.textContent);
+  }
+  for (const child of onHoldList.children) {
+    onHoldListArray.push(child.textContent);
+  }
+  updateDOM();
+}
+
 function drag(e) {
   draggedItem = e.target;
-  console.log("draggedItem", draggedItem);
 }
 
 // Column Allows for Item to Drop
@@ -113,6 +134,7 @@ function drop(e) {
   // Add item to Column
   const parent = listColumns[currentColumn];
   parent.appendChild(draggedItem);
+  rebuildArrays(); // Update arrays and localStorage after drop
 }
 
 // When Item Enters Column Area
