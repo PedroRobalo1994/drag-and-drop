@@ -93,6 +93,31 @@ function updateDOM() {
   updateSavedColumns();
 }
 
+// Show Add Item Input Box
+function showInputBox(column) {
+  addBtns[column].style.visibility = "hidden";
+  saveItemBtns[column].style.display = "flex";
+  addItemContainers[column].style.display = "flex";
+}
+
+// Hide Add Item Input Box
+function hideInputBox(column) {
+  addBtns[column].style.visibility = "visible";
+  saveItemBtns[column].style.display = "none";
+  addItemContainers[column].style.display = "none";
+  addToColumn(column);
+}
+
+// Add Item to Column
+function addToColumn(column) {
+  const item = addItemContainers[column].querySelector(".add-item").textContent;
+  listArrays[column].push(item);
+  // Reset text content of add item
+  addItemContainers[column].textContent = "";
+  updateDOM();
+}
+
+
 // Allow arrays to reflect Drag and Drop item
 function rebuildArrays() {
   backlogListArray = [];
