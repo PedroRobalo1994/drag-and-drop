@@ -110,10 +110,18 @@ function hideInputBox(column) {
 
 // Add Item to Column
 function addToColumn(column) {
-  const item = addItemContainers[column].querySelector(".add-item").textContent;
+  // Get the input element and its trimmed content
+  const itemEl = addItemContainers[column].querySelector(".add-item");
+  const item = itemEl.textContent.trim();
+  if (item === "") {
+    // If the input box is empty, reset and update the DOM but do not add an item
+    itemEl.textContent = "";
+    updateDOM();
+    return;
+  }
   listArrays[column].push(item);
   // Reset text content of add item
-  addItemContainers[column].textContent = "";
+  itemEl.textContent = "";
   updateDOM();
 }
 
