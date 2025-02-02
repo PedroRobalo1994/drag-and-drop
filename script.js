@@ -48,6 +48,11 @@ function updateSavedColumns() {
   });
 }
 
+// Filter arrays to remove empty strings
+function filterArray(array) {
+  return array.filter(item => item !== null);
+}
+
 // Create DOM Elements for each list item
 function createItemEl(columnEl, column, item, index) {
   const listEl = document.createElement("li");
@@ -55,6 +60,9 @@ function createItemEl(columnEl, column, item, index) {
   listEl.textContent = item;
   listEl.draggable = true;
   listEl.setAttribute("ondragstart", "drag(event)");
+  listEl.contentEditable = true;
+  listEl.id = index;
+  listEl.setAttribute("onfocusout", `updateItem(${index}, "${column}")`);
   //Append
   columnEl.appendChild(listEl);
 
@@ -88,12 +96,31 @@ function updateDOM() {
     createItemEl(onHoldList, 3, onHoldItem, index);
   });
 
+  // Filter Arrays
+  backlogListArray = filterArray(backlogListArray);
+  progressListArray = filterArray(progressListArray);
+  completeListArray = filterArray(completeListArray);
+  onHoldListArray = filterArray(onHoldListArray);
+
   // Run getSavedColumns only once, Update Local Storage
   updatedOnLoad = true;
   updateSavedColumns();
+
+}
+
+// Update Item - Delete if necessary, or update Array value
+function updateItem(index, column) {
+  const selectedArray = listArrays[column];
+  const selectedColumnEl = listColumns[column].children;
+
+  if (!selectedColumnEl[index].textContent) {
+    delete selectedArray[index];
+  }
+  updateDOM();
 }
 
 // Show Add Item Input Box
+
 function showInputBox(column) {
   addBtns[column].style.visibility = "hidden";
   saveItemBtns[column].style.display = "flex";
