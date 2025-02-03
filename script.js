@@ -1,7 +1,15 @@
+/**
+ * Kanban Board JavaScript
+ * This file contains all the functionality for the Kanban board including
+ * drag and drop, local storage management, and DOM manipulation.
+ */
+
+// DOM Elements
 const addBtns = document.querySelectorAll(".add-btn:not(.solid)");
 const saveItemBtns = document.querySelectorAll(".solid");
 const addItemContainers = document.querySelectorAll(".add-container");
 const addItems = document.querySelectorAll(".add-item");
+
 // Item Lists
 const listColumns = document.querySelectorAll(".drag-item-list");
 const backlogList = document.getElementById("backlog-list");
@@ -19,19 +27,46 @@ let completeListArray = [];
 let onHoldListArray = [];
 let listArrays = [];
 
-
 // Drag Functionality
 let draggedItem;
 let currentColumn;
 
-// Get Arrays from localStorage if available, set default values if not
+const MAX_CHARS = 100; // Maximum characters per task
+
+/**
+ * Safely parses JSON data with error handling
+ * @param {string} data - JSON string to parse
+ * @returns {any} Parsed data or null if invalid
+ */
+function safeJSONParse(data) {
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('Error parsing JSON:', e);
+    return null;
+  }
+}
+
+/**
+ * Retrieves saved columns data from localStorage
+ * If no data exists, initializes with default values
+ */
 function getSavedColumns() {
-  if (localStorage.getItem("backlogItems")) {
-    backlogListArray = JSON.parse(localStorage.backlogItems);
-    progressListArray = JSON.parse(localStorage.progressItems);
-    completeListArray = JSON.parse(localStorage.completeItems);
-    onHoldListArray = JSON.parse(localStorage.onHoldItems);
-  } else {
+  try {
+    if (localStorage.getItem("backlogItems")) {
+      backlogListArray = safeJSONParse(localStorage.backlogItems) || [];
+      progressListArray = safeJSONParse(localStorage.progressItems) || [];
+      completeListArray = safeJSONParse(localStorage.completeItems) || [];
+      onHoldListArray = safeJSONParse(localStorage.onHoldItems) || [];
+    } else {
+      backlogListArray = ["Release the course", "Sit back and relax"];
+      progressListArray = ["Work on projects", "Listen to music"];
+      completeListArray = ["Being cool", "Getting stuff done"];
+      onHoldListArray = ["Being uncool"];
+    }
+  } catch (e) {
+    console.error('Error accessing localStorage:', e);
+    // Fallback to default values if localStorage fails
     backlogListArray = ["Release the course", "Sit back and relax"];
     progressListArray = ["Work on projects", "Listen to music"];
     completeListArray = ["Being cool", "Getting stuff done"];
@@ -39,21 +74,54 @@ function getSavedColumns() {
   }
 }
 
-// Set localStorage Arrays
+/**
+ * Updates localStorage with current array values
+ * Maps array data to corresponding localStorage keys
+ */
 function updateSavedColumns() {
-  listArrays = [backlogListArray, progressListArray, completeListArray, onHoldListArray];
-  const arrayNames = ["backlog", "progress", "complete", "onHold"];
-  arrayNames.forEach((name, index) => {
-    localStorage.setItem(`${name}Items`, JSON.stringify(listArrays[index]));
-  });
+  try {
+    listArrays = [backlogListArray, progressListArray, completeListArray, onHoldListArray];
+    const arrayNames = ["backlog", "progress", "complete", "onHold"];
+    arrayNames.forEach((name, index) => {
+      localStorage.setItem(`${name}Items`, JSON.stringify(listArrays[index]));
+    });
+  } catch (e) {
+    console.error('Error saving to localStorage:', e);
+  }
 }
 
-// Filter arrays to remove empty strings
+/**
+ * Filters out null values from arrays
+ * @param {Array} array - The array to filter
+ * @returns {Array} Filtered array without null values
+ */
 function filterArray(array) {
   return array.filter(item => item !== null);
 }
 
-// Create DOM Elements for each list item
+/**
+ * Validates item text length and provides UI feedback
+ * @param {string} text - The text to validate
+ * @returns {boolean} Whether the text is valid
+ */
+function validateItemText(text) {
+  if (text.length > MAX_CHARS) {
+    alert(`Task text cannot exceed ${MAX_CHARS} characters`);
+    return false;
+  }
+  if (text.trim().length === 0) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Creates a new draggable list item
+ * @param {HTMLElement} columnEl - The column element to add the item to
+ * @param {number} column - The column index
+ * @param {string} item - The item text content
+ * @param {number} index - The item's index in the array
+ */
 function createItemEl(columnEl, column, item, index) {
   const listEl = document.createElement("li");
   listEl.classList.add("drag-item");
@@ -63,12 +131,32 @@ function createItemEl(columnEl, column, item, index) {
   listEl.contentEditable = true;
   listEl.id = index;
   listEl.setAttribute("onfocusout", `updateItem(${index}, "${column}")`);
-  //Append
-  columnEl.appendChild(listEl);
+  
+  // Add character count display
+  listEl.addEventListener('input', (e) => {
+    const text = e.target.textContent;
+    if (text.length > MAX_CHARS) {
+      e.target.textContent = text.substring(0, MAX_CHARS);
+      alert(`Task text cannot exceed ${MAX_CHARS} characters`);
+    }
+  });
 
+  // Add visual feedback for dragging
+  listEl.addEventListener('dragstart', () => {
+    listEl.classList.add('dragging');
+  });
+  
+  listEl.addEventListener('dragend', () => {
+    listEl.classList.remove('dragging');
+  });
+  
+  columnEl.appendChild(listEl);
 }
 
-// Update Columns in DOM - Reset HTML, Filter Array, Update localStorage
+/**
+ * Updates the DOM with current array values
+ * Handles initial load and subsequent updates
+ */
 function updateDOM() {
   // Check localStorage once
   if (!updatedOnLoad) getSavedColumns();
@@ -105,29 +193,44 @@ function updateDOM() {
   // Run getSavedColumns only once, Update Local Storage
   updatedOnLoad = true;
   updateSavedColumns();
-
 }
 
-// Update Item - Delete if necessary, or update Array value
+/**
+ * Updates an item's content after editing
+ * @param {number} index - The item's index
+ * @param {number} column - The column index
+ */
 function updateItem(index, column) {
   const selectedArray = listArrays[column];
   const selectedColumnEl = listColumns[column].children;
+  
+  // Skip update if the item is currently being dragged
+  if (selectedColumnEl[index] === draggedItem) {
+    return;
+  }
 
   if (!selectedColumnEl[index].textContent) {
     delete selectedArray[index];
+  } else {
+    selectedArray[index] = selectedColumnEl[index].textContent;
   }
   updateDOM();
 }
 
-// Show Add Item Input Box
-
+/**
+ * Shows the input box for adding new items
+ * @param {number} column - The column index
+ */
 function showInputBox(column) {
   addBtns[column].style.visibility = "hidden";
   saveItemBtns[column].style.display = "flex";
   addItemContainers[column].style.display = "flex";
 }
 
-// Hide Add Item Input Box
+/**
+ * Hides the input box and processes the new item
+ * @param {number} column - The column index
+ */
 function hideInputBox(column) {
   addBtns[column].style.visibility = "visible";
   saveItemBtns[column].style.display = "none";
@@ -135,25 +238,29 @@ function hideInputBox(column) {
   addToColumn(column);
 }
 
-// Add Item to Column
+/**
+ * Adds a new item to the specified column
+ * @param {number} column - The column index
+ */
 function addToColumn(column) {
-  // Get the input element and its trimmed content
   const itemEl = addItemContainers[column].querySelector(".add-item");
   const item = itemEl.textContent.trim();
-  if (item === "") {
-    // If the input box is empty, reset and update the DOM but do not add an item
+  
+  if (!validateItemText(item)) {
     itemEl.textContent = "";
     updateDOM();
     return;
   }
+  
   listArrays[column].push(item);
-  // Reset text content of add item
   itemEl.textContent = "";
   updateDOM();
 }
 
-
-// Allow arrays to reflect Drag and Drop item
+/**
+ * Rebuilds arrays after drag and drop operations
+ * Updates localStorage with new array values
+ */
 function rebuildArrays() {
   backlogListArray = [];
   progressListArray = [];
@@ -175,16 +282,26 @@ function rebuildArrays() {
   updateDOM();
 }
 
+/**
+ * Handles the drag start event
+ * @param {DragEvent} e - The drag event
+ */
 function drag(e) {
   draggedItem = e.target;
 }
 
-// Column Allows for Item to Drop
+/**
+ * Allows dropping of items in columns
+ * @param {DragEvent} e - The drag event
+ */
 function allowDrop(e) {
   e.preventDefault();
 }
 
-// Dropping Item in Column
+/**
+ * Handles the drop event
+ * @param {DragEvent} e - The drop event
+ */
 function drop(e) {
   e.preventDefault();
   // Remove Background Color/Padding
@@ -197,11 +314,14 @@ function drop(e) {
   rebuildArrays(); // Update arrays and localStorage after drop
 }
 
-// When Item Enters Column Area
+/**
+ * Handles when an item enters a column during drag
+ * @param {number} column - The column index
+ */
 function dragEnter(column) {
   listColumns[column].classList.add("over");
   currentColumn = column;
 }
 
-// On Load
+// Initialize on load
 updateDOM();

@@ -123,6 +123,9 @@ ul {
 /* Drag and Drop */
 .over {
   padding: 50px 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease-in-out;
 }
 
 .drag-item-list {
@@ -138,6 +141,18 @@ ul {
   line-height: 1.5rem;
   letter-spacing: 1px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.drag-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.drag-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .drag-item:focus {
