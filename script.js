@@ -262,23 +262,10 @@ function addToColumn(column) {
  * Updates localStorage with new array values
  */
 function rebuildArrays() {
-  backlogListArray = [];
-  progressListArray = [];
-  completeListArray = [];
-  onHoldListArray = [];
-
-  for (const child of backlogList.children) {
-    backlogListArray.push(child.textContent);
-  }
-  for (const child of progressList.children) {
-    progressListArray.push(child.textContent);
-  }
-  for (const child of completeList.children) {
-    completeListArray.push(child.textContent);
-  }
-  for (const child of onHoldList.children) {
-    onHoldListArray.push(child.textContent);
-  }
+  backlogListArray = Array.from(backlogList.children).map(child => child.textContent);
+  progressListArray = Array.from(progressList.children).map(child => child.textContent);
+  completeListArray = Array.from(completeList.children).map(child => child.textContent);
+  onHoldListArray = Array.from(onHoldList.children).map(child => child.textContent);
   updateDOM();
 }
 
